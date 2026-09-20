@@ -1,3 +1,4 @@
+import fs from 'fs';
 import express from 'express';
 import sequelize from './database/db.js';
 import Livro from './models/Livro.js';
@@ -17,9 +18,47 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static('Front/src'));
 
+const mapaCapas = {
+  'O Hobbit': '/Assets/img/o-hobbit.jpg',
+  'Clean Code': '/Assets/img/clean-code.jpg',
+  '1984': '/Assets/img/1984.jpg',
+  'A Revolução Francesa': '/Assets/img/a-revolução-francesa.jpg',
+  'JavaScript: O Guia Definitivo': '/Assets/img/js-o-guia-definitivo.jpg',
+  'Fundação': '/Assets/img/Fundação.jpg',
+  'A História da Humanidade': '/Assets/img/a-história-da-humanidade_.jpg',
+  'Python para Análise de Dados': '/Assets/img/python-para-analise.jpg',
+  'O Senhor dos Anéis': '/Assets/img/o-senhor-dos-aneis.jpg',
+  'Design Patterns': '/Assets/img/design-patterns.jpg',
+  'Duna': '/Assets/img/Duna.jpg',
+  'A Queda do Império Romano': '/Assets/img/a-queda-do-imperio-romano.jpg'
+};
+
 sequelize.sync()
-  .then(() => {
+  .then(async () => {
     console.log('Tabelas criadas/sincronizadas');
+
+    // Popula o banco automaticamente apenas no modo SQLite (Render),
+    // já que o SQLite não é persistente e começa vazio a cada novo deploy.
+    if (process.env.DB_DIALECT === 'sqlite') {
+      const totalLivros = await Livro.count();
+
+      if (totalLivros === 0) {
+        const dados = JSON.parse(fs.readFileSync('./livros.json', 'utf-8'));
+
+        for (const item of dados) {
+          await Livro.create({
+            titulo: item.title,
+            categoria: item.category,
+            capa: mapaCapas[item.title] || '',
+            quantidade: 5,
+            ano_publicacao: null,
+            autor_id: null
+          });
+        }
+
+        console.log(`${dados.length} livros importados automaticamente (SQLite).`);
+      }
+    }
   })
   .catch(err => {
     console.error(err);
@@ -32,7 +71,7 @@ app.get('/users', (req, res) => {
 
 });
 
-//Rota para cadastro
+//Rota para cadast
 app.post('/register', async (req, res) => {
   try {
 
